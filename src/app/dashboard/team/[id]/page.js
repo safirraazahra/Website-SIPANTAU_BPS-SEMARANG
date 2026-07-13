@@ -19,11 +19,13 @@ const initialTasks = [
   { id: 6, title: "Deploy ke Staging Server", desc: "Deploy aplikasi ke environment staging untuk review", date: "25 Juli 2026", type: "Fitur", priority: "Sedang", status: "todo", done: false, orang: ["A", "M", "N"], riwayat: [], komentar: [] },
 ];
 
+const memberColors = ["bg-violet-400", "bg-emerald-400", "bg-amber-400", "bg-rose-400", "bg-sky-400", "bg-indigo-400"];
+
 const teamsData = {
-  "1": { name: "Tim Teknologi Informasi UNDIP", members: ["A", "M", "N"], colors: ["bg-violet-400", "bg-emerald-400", "bg-amber-400"] },
-  "2": { name: "Tim Desain Kreatif BPS", members: ["A", "M"], colors: ["bg-rose-400", "bg-sky-400"] },
-  "3": { name: "Tim Analisis Data", members: ["N", "B", "A", "M"], colors: ["bg-violet-400", "bg-emerald-400", "bg-amber-400", "bg-rose-400"] },
-  "4": { name: "Tim Backend Development", members: ["A", "B"], colors: ["bg-violet-400", "bg-emerald-400"] },
+  "1": { name: "Tim Teknologi Informasi UNDIP", members: ["A", "R", "H"] },
+  "2": { name: "Tim Desain Kreatif BPS", members: ["D", "E"] },
+  "3": { name: "Tim Analisis Data", members: ["F", "G", "H", "I"] },
+  "4": { name: "Tim Backend Development", members: ["A", "B"] },
 };
 
 const userAvatars = {
@@ -109,7 +111,7 @@ export default function TeamDetailPage({ params }) {
             userAvatars[m] ? (
               <img key={i} src={userAvatars[m]} alt={m} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm" />
             ) : (
-              <div key={i} className={`w-8 h-8 rounded-full border-2 border-white ${team.colors[i % team.colors.length]} flex items-center justify-center text-white text-xs font-bold shadow-sm`}>
+              <div key={i} className={`w-8 h-8 rounded-full border-2 border-white ${memberColors[i % memberColors.length]} flex items-center justify-center text-white text-xs font-bold shadow-sm`}>
                 {m}
               </div>
             )
@@ -119,12 +121,12 @@ export default function TeamDetailPage({ params }) {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-6 border-b border-slate-100 px-2">
+      <div className="flex w-full border-b border-slate-100">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === tab.id
+            className={`flex-1 pb-3 text-sm font-bold flex items-center justify-center gap-2 border-b-2 transition-all ${activeTab === tab.id
                 ? "border-violet-600 text-violet-700"
                 : "border-transparent text-slate-400 hover:text-slate-600"
               }`}
