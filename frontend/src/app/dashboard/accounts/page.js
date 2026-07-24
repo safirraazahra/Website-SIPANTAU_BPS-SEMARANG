@@ -9,7 +9,10 @@ export default function AccountsPage() {
   const [users, setUsers] = useState([]);
   const [activeTab, setActiveTab] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [expandedRow, setExpandedRow] = useState(null);
+
   const [editingRow, setEditingRow] = useState(null);
   const [editFormData, setEditFormData] = useState({});
   const [selectedUsers, setSelectedUsers] = useState([]);
@@ -19,9 +22,27 @@ export default function AccountsPage() {
   const [newAccount, setNewAccount] = useState({
     name: "",
     email: "",
+    phone: "",
+    address: "",
     role: "pemagang",
     institution: "",
+    major: "",
+    password: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [toasts, setToasts] = useState([]);
+
+  const showToast = (title, message) => {
+    const id = Date.now() + Math.random();
+    setToasts(prev => [...prev, { id, title, message }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 4000);
+  };
+
+  const removeToast = (id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
 
   const handleEditStart = (user) => {
     setEditingRow(user.id);
@@ -129,6 +150,17 @@ export default function AccountsPage() {
     return true;
   });
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchQuery]);
+
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+
   const getStatusBadge = (status) => {
     switch (status) {
       case "pending":
@@ -172,7 +204,42 @@ export default function AccountsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* Toast Notification Container */}
+      <div className="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none">
+        {toasts.map(toast => (
+          <div
+            key={toast.id}
+            className="pointer-events-auto flex items-start gap-3 bg-[#f0fdf4] border-l-4 border-[#4ade80] rounded shadow-md p-4 min-w-[320px] transform transition-all animate-[slideIn_0.3s_ease-out_forwards]"
+          >
+            <div className="bg-[#4ade80] rounded-full w-5 h-5 flex items-center justify-center shrink-0 mt-0.5">
+              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-extrabold text-slate-800">{toast.title}</h4>
+              <p className="text-xs font-semibold text-slate-500 mt-0.5">{toast.message}</p>
+            </div>
+            <button
+              onClick={() => removeToast(toast.id)}
+              className="text-[#86efac] hover:text-[#4ade80] transition-colors p-0.5"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        ))}
+      </div>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `}} />
+
       <div className="border-b border-slate-100 pb-5">
         <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Direktori Tim</h1>
       </div>
@@ -184,8 +251,8 @@ export default function AccountsPage() {
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === tab
-                ? "border-violet-600 text-slate-900"
-                : "border-transparent text-slate-400 hover:text-slate-600"
+              ? "border-violet-600 text-slate-900"
+              : "border-transparent text-slate-400 hover:text-slate-600"
               }`}
           >
             {tab}
@@ -222,7 +289,7 @@ export default function AccountsPage() {
                 </svg>
                 {selectedUsers.length} terpilih
               </div>
-              <button 
+              <button
                 onClick={() => { setUserToDelete(null); setShowDeleteConfirm(true); }}
                 className="px-4 py-2 bg-rose-100 hover:bg-rose-200 text-rose-500 text-[11px] font-bold rounded-full flex items-center gap-2 transition-colors cursor-pointer"
               >
@@ -235,7 +302,7 @@ export default function AccountsPage() {
           )}
         </div>
 
-        <button 
+        <button
           onClick={() => setShowAddModal(true)}
           className="bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-md shadow-violet-100 transition-all flex items-center gap-2 cursor-pointer"
         >
@@ -265,8 +332,9 @@ export default function AccountsPage() {
               </tr>
             </thead>
             <tbody className="text-slate-700 divide-y-0 divide-transparent" style={{ border: 'none' }}>
-              {filteredUsers.map((user, idx) => {
+              {paginatedUsers.map((user, idx) => {
                 const isExpanded = expandedRow === user.id;
+
                 const isSelected = selectedUsers.includes(user.id);
 
                 return (
@@ -581,8 +649,11 @@ export default function AccountsPage() {
               })}
               {filteredUsers.length === 0 && (
                 <tr>
-                  <td colSpan="8" className="px-6 py-12 text-center text-xs font-semibold text-slate-400">
-                    Tidak ada akun yang ditemukan.
+                  <td colSpan="8" className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center p-6">
+                      <img src="/empty-accounts.svg" alt="Belum ada akun terdaftar" className="w-56 h-36 object-contain mb-4" />
+                      <p className="text-sm font-extrabold text-slate-800">Belum ada akun terdaftar</p>
+                    </div>
                   </td>
                 </tr>
               )}
@@ -591,82 +662,265 @@ export default function AccountsPage() {
         </div>
       </div>
 
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 py-2 shrink-0">
+          <button
+            onClick={() => setCurrentPage(1)}
+            disabled={currentPage === 1}
+            className={`w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-bold transition-all ${
+              currentPage === 1
+                ? "bg-[#e9ecef] text-violet-600 opacity-60 cursor-not-allowed"
+                : "bg-violet-600 text-white hover:bg-violet-700 cursor-pointer"
+            }`}
+          >
+            «
+          </button>
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className={`w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-bold transition-all ${
+              currentPage === 1
+                ? "bg-[#e9ecef] text-violet-600 opacity-60 cursor-not-allowed"
+                : "bg-violet-600 text-white hover:bg-violet-700 cursor-pointer"
+            }`}
+          >
+            ‹
+          </button>
+
+          {(() => {
+            const pages = [];
+            if (totalPages <= 5) {
+              for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+              }
+            } else {
+              if (currentPage <= 2) {
+                pages.push(1, 2, 3, "...", totalPages);
+              } else if (currentPage >= totalPages - 1) {
+                pages.push(1, "...", totalPages - 2, totalPages - 1, totalPages);
+              } else {
+                pages.push(1, "...", currentPage, "...", totalPages);
+              }
+            }
+            return pages.map((p, idx) => {
+              if (p === "...") {
+                return (
+                  <span key={`dots-${idx}`} className="w-8 h-8 flex items-center justify-center text-xs font-bold text-violet-600">
+                    ...
+                  </span>
+                );
+              }
+              const isActive = currentPage === p;
+              return (
+                <button
+                  key={p}
+                  onClick={() => setCurrentPage(p)}
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold transition-all ${
+                    isActive
+                      ? "bg-violet-600 border border-violet-600 text-white shadow-sm cursor-default"
+                      : "bg-white border border-violet-600 text-violet-600 hover:bg-violet-50 cursor-pointer"
+                  }`}
+                >
+                  {p}
+                </button>
+              );
+            });
+          })()}
+
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className={`w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-bold transition-all ${
+              currentPage === totalPages
+                ? "bg-[#e9ecef] text-violet-600 opacity-60 cursor-not-allowed"
+                : "bg-violet-600 text-white hover:bg-violet-700 cursor-pointer"
+            }`}
+          >
+            ›
+          </button>
+          <button
+            onClick={() => setCurrentPage(totalPages)}
+            disabled={currentPage === totalPages}
+            className={`w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-bold transition-all ${
+              currentPage === totalPages
+                ? "bg-[#e9ecef] text-violet-600 opacity-60 cursor-not-allowed"
+                : "bg-violet-600 text-white hover:bg-violet-700 cursor-pointer"
+            }`}
+          >
+            »
+          </button>
+        </div>
+      )}
+
+
       {/* Tambah Akun Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
-              <div>
-                <h2 className="text-base font-extrabold text-slate-800">Tambah Akun</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Buat akun baru secara manual (Default Password: password123).</p>
-              </div>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 font-bold cursor-pointer transition-colors"
-              >
-                ✕
-              </button>
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowAddModal(false)}
+        >
+          <div
+            className="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[95vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-white shrink-0">
+              <h2 className="text-[15px] font-extrabold text-slate-800">Tambah Akun</h2>
             </div>
-            
-            <div className="p-6 space-y-5 overflow-y-auto max-h-[60vh]">
+
+            <div className="p-8 space-y-5 overflow-y-auto custom-scrollbar flex-1">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Nama Lengkap</label>
+                <label className="text-[11px] font-bold text-slate-800 block"><span className="text-rose-500">*</span> Nama</label>
                 <input
                   type="text"
                   value={newAccount.name}
                   onChange={(e) => setNewAccount({ ...newAccount, name: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-violet-500"
-                  placeholder="Masukkan nama"
+                  className="w-full border border-slate-200 bg-slate-50/50 rounded-full px-5 py-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
+                  placeholder="Contoh: Budi Santoso"
                 />
               </div>
+
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Email</label>
+                <label className="text-[11px] font-bold text-slate-800 block"><span className="text-rose-500">*</span> Email</label>
                 <input
                   type="email"
                   value={newAccount.email}
                   onChange={(e) => setNewAccount({ ...newAccount, email: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-violet-500"
-                  placeholder="nama@email.com"
+                  className="w-full border border-slate-200 bg-slate-50/50 rounded-full px-5 py-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
+                  placeholder="Contoh: budi.santoso@email.com"
                 />
               </div>
+
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Peran (Role)</label>
-                <select
-                  value={newAccount.role}
-                  onChange={(e) => setNewAccount({ ...newAccount, role: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-violet-500 bg-white"
-                >
-                  <option value="pemagang">Pemagang</option>
-                  <option value="mentor">Mentor</option>
-                  <option value="admin">Admin</option>
-                </select>
+                <label className="text-[11px] font-bold text-slate-800 block"><span className="text-rose-500">*</span> Nomor Telepon</label>
+                <input
+                  type="tel"
+                  value={newAccount.phone}
+                  onChange={(e) => setNewAccount({ ...newAccount, phone: e.target.value })}
+                  className="w-full border border-slate-200 bg-slate-50/50 rounded-full px-5 py-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
+                  placeholder="Contoh: 081234567890"
+                />
               </div>
-              {newAccount.role !== "mentor" && (
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-800 block"><span className="text-rose-500">*</span> Alamat Rumah</label>
+                <input
+                  type="text"
+                  value={newAccount.address}
+                  onChange={(e) => setNewAccount({ ...newAccount, address: e.target.value })}
+                  className="w-full border border-slate-200 bg-slate-50/50 rounded-full px-5 py-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
+                  placeholder="Contoh: Jl. Pahlawan No. 1, Semarang"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-800 block"><span className="text-rose-500">*</span> Role</label>
+                <div className="flex items-center gap-10 mt-1 pl-1">
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="radio"
+                      value="pemagang"
+                      checked={newAccount.role === "pemagang"}
+                      onChange={() => setNewAccount({ ...newAccount, role: "pemagang", institution: "", major: "" })}
+                      className="sr-only"
+                    />
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${newAccount.role === "pemagang" ? "border-violet-600 bg-white" : "border-slate-300"}`}>
+                      {newAccount.role === "pemagang" && <div className="w-2 h-2 rounded-full bg-violet-600" />}
+                    </div>
+                    <span className="text-xs font-medium text-slate-700">Pemagang</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="radio"
+                      value="mentor"
+                      checked={newAccount.role === "mentor"}
+                      onChange={() => setNewAccount({ ...newAccount, role: "mentor", institution: "Badan Pusat Statistik", major: "" })}
+                      className="sr-only"
+                    />
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${newAccount.role === "mentor" ? "border-violet-600 bg-white" : "border-slate-300"}`}>
+                      {newAccount.role === "mentor" && <div className="w-2 h-2 rounded-full bg-violet-600" />}
+                    </div>
+                    <span className="text-xs font-medium text-slate-700">Mentor</span>
+                  </label>
+                </div>
+              </div>
+
+              {newAccount.role === "pemagang" ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-800 block"><span className="text-rose-500">*</span> Asal Instansi</label>
+                    <input
+                      type="text"
+                      value={newAccount.institution}
+                      onChange={(e) => setNewAccount({ ...newAccount, institution: e.target.value })}
+                      className="w-full border border-slate-200 bg-slate-50/50 rounded-full px-5 py-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
+                      placeholder="Contoh: Universitas Diponegoro"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-800 block"><span className="text-rose-500">*</span> Jurusan</label>
+                    <input
+                      type="text"
+                      value={newAccount.major}
+                      onChange={(e) => setNewAccount({ ...newAccount, major: e.target.value })}
+                      className="w-full border border-slate-200 bg-slate-50/50 rounded-full px-5 py-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
+                      placeholder="Contoh: Statistika"
+                    />
+                  </div>
+                </div>
+              ) : (
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Instansi / Universitas</label>
+                  <label className="text-[11px] font-bold text-slate-800 block"><span className="text-rose-500">*</span> Asal Instansi</label>
                   <input
                     type="text"
-                    value={newAccount.institution}
-                    onChange={(e) => setNewAccount({ ...newAccount, institution: e.target.value })}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-violet-500"
-                    placeholder="Contoh: Universitas Diponegoro"
+                    value="Badan Pusat Statistik"
+                    readOnly
+                    className="w-1/2 border border-slate-200 bg-slate-100/70 rounded-full px-5 py-2.5 text-xs text-slate-500 outline-none cursor-not-allowed"
                   />
                 </div>
               )}
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-800 block"><span className="text-rose-500">*</span> Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={newAccount.password}
+                    onChange={(e) => setNewAccount({ ...newAccount, password: e.target.value })}
+                    className="w-full border border-slate-200 bg-slate-50/50 rounded-full pl-5 pr-12 py-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
+                    placeholder="Masukkan password sementara"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                  >
+                    {showPassword ? (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3 shrink-0">
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs font-bold text-slate-500 cursor-pointer"
-              >
-                Batal
-              </button>
+            <div className="p-8 pt-4 bg-white shrink-0 relative">
+              {/* Close button layered absolutely to the top right to act outside of flow if needed, but it's on header.
+                   Wait, there's no visible close button in the user's screenshot, but I'll add an invisible overlay click or just keep the header simple.
+                   Actually, the user screenshot doesn't have an X button on the top right. It just has "Tambah Akun" text.
+                   I'll remove the X button in the header and rely on backdrop click to close.
+               */}
               <button
                 onClick={handleAddAccount}
-                className="px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-xs font-bold text-white shadow-md shadow-violet-100 cursor-pointer"
+                className="w-full bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white text-xs font-bold py-3.5 rounded-full shadow-lg shadow-violet-100 transition-all cursor-pointer"
               >
-                Simpan Akun
+                Tambah Akun
               </button>
             </div>
           </div>
@@ -685,13 +939,13 @@ export default function AccountsPage() {
             <h3 className="text-sm font-extrabold text-slate-800 mb-2">Hapus Akun</h3>
             <p className="text-[11px] text-slate-600 font-semibold mb-6">Anda akan menghapus {userToDelete ? 'akun' : (selectedUsers.length > 1 ? `${selectedUsers.length} akun` : 'akun')} ini.</p>
             <div className="flex items-center gap-3 w-full">
-              <button 
+              <button
                 onClick={() => { setShowDeleteConfirm(false); setUserToDelete(null); }}
                 className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs py-2.5 rounded-xl transition-colors cursor-pointer"
               >
                 Tidak, simpan.
               </button>
-              <button 
+              <button
                 onClick={handleDeleteSelected}
                 className="flex-1 bg-[#de3b4b] hover:bg-rose-700 text-white font-bold text-xs py-2.5 rounded-xl transition-colors cursor-pointer"
               >
