@@ -156,10 +156,12 @@ export default function AuthForm({ defaultRole = "pemagang", onForgotPasswordCha
         localStorage.setItem("sipantau_reset_email", forgotEmail);
       }
 
+      const origin = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
+
       // Try triggering Supabase resetPasswordForEmail
       try {
         await supabase.auth.resetPasswordForEmail(forgotEmail, {
-          redirectTo: `${typeof window !== "undefined" ? window.location.origin : ""}/reset-password?email=${encodeURIComponent(forgotEmail)}`,
+          redirectTo: `${origin}/reset-password?email=${encodeURIComponent(forgotEmail)}`,
         });
       } catch (sErr) {
         console.warn("Supabase resetPasswordForEmail notice:", sErr);
