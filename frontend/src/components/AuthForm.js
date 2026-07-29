@@ -103,7 +103,7 @@ export default function AuthForm({ defaultRole = "pemagang", onForgotPasswordCha
           institution: signUpInstitution || "-",
           major: signUpMajor || "-",
           role: finalRole,
-        });
+        }, { persistSession: true });
       } catch (err) {
         if (err.message?.toLowerCase().includes("user already registered") || err.message?.toLowerCase().includes("already exists")) {
           alert("Email ini sudah pernah terdaftar di Sipantau! Jika Anda sempat dihapus Admin dan ingin mendaftar ulang, silakan masuk lewat menu LOGIN menggunakan kata sandi Anda sebelumnya, lalu klik tombol 'Koreksi & Ajukan Ulang'.");

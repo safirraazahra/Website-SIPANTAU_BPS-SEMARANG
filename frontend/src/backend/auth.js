@@ -3,8 +3,13 @@ import { supabase } from "./client";
 
 /**
  * Sign up a new user
+ * @param {Object} userData - User data (email, password, name, phone, address, institution, major, role)
+ * @param {Object} [options] - Optional settings
+ * @param {boolean} [options.persistSession=false] - If true, session akan disimpan di main client (untuk user yg daftar sendiri)
  */
-export async function signUpUser({ email, password, name, phone, address, institution, major, role }) {
+export async function signUpUser({ email, password, name, phone, address, institution, major, role }, options = {}) {
+  const { persistSession = false } = options;
+
   // Use isolated client with persistSession: false to preserve active admin session
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
@@ -33,8 +38,8 @@ export async function signUpUser({ email, password, name, phone, address, instit
   if (error) throw error;
   
   if (data?.user) {
-    // Update profiles table with extra fields
-    await supabase.from("profiles").update({
+    // Update profiles table via tempClient (yang punya session user baru, jadi RLS gak ngeblok)
+    await tempClient.from("profiles").update({
       full_name: name,
       status: "pending",
       phone,
@@ -43,6 +48,11 @@ export async function signUpUser({ email, password, name, phone, address, instit
       major,
       role
     }).eq("id", data.user.id);
+
+    // Jika perlu session dipersist (user daftar sendiri), set session ke main client
+    if (persistSession && data.session) {
+      await supabase.auth.setSession(data.session);
+    }
 
     const { logActivity } = await import('./dashboard.js');
     await logActivity(data.user.id, `telah mendaftar akun baru sebagai ${role}`);

@@ -51,8 +51,9 @@ export default function TeamDetailPage({ params }) {
   const [memberSearch, setMemberSearch] = useState("");
 
   // Load backend data
-  const loadData = async ({ forceRefresh = false } = {}) => {
-    setLoading(true);
+  const loadData = async ({ forceRefresh = false, silent = false } = {}) => {
+    // Silent mode: jangan tampilkan loading spinner (untuk background refresh / realtime)
+    if (!silent) setLoading(true);
     try {
       if (!teamId) return;
 
@@ -308,7 +309,7 @@ export default function TeamDetailPage({ params }) {
       if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
       reloadTimerRef.current = setTimeout(() => {
         clearGroupCache(teamId);
-        loadData({ forceRefresh: true });
+        loadData({ forceRefresh: true, silent: true });
         reloadTimerRef.current = null;
       }, 500);
     };
@@ -355,10 +356,10 @@ export default function TeamDetailPage({ params }) {
         }, scheduleReload)
       .subscribe();
 
-    // 6. Periodic polling fallback (every 30 seconds)
+    // 6. Periodic polling fallback (every 30 seconds) — silent biar gak ngeloading
     const pollInterval = setInterval(() => {
       clearGroupCache(teamId);
-      loadData({ forceRefresh: true });
+      loadData({ forceRefresh: true, silent: true });
     }, 30000);
 
     // Cleanup
@@ -528,8 +529,8 @@ export default function TeamDetailPage({ params }) {
                                   try {
                                     clearGroupCache(team.id);
                                     await removeGroupMember(team.id, m.id);
-                                    // Reload data
-                                    loadData({ forceRefresh: true });
+                                    // Reload data (silent biar gak loading)
+                                    loadData({ forceRefresh: true, silent: true });
                                   } catch (err) {
                                     console.error("Gagal menghapus anggota:", err);
                                   }
@@ -545,8 +546,8 @@ export default function TeamDetailPage({ params }) {
                                   try {
                                     clearGroupCache(team.id);
                                     await addGroupMember(team.id, m.id);
-                                    // Reload data
-                                    loadData({ forceRefresh: true });
+                                    // Reload data (silent biar gak loading)
+                                    loadData({ forceRefresh: true, silent: true });
                                   } catch (err) {
                                     console.error("Gagal menambah anggota:", err);
                                   }
