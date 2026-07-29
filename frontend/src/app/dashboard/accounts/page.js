@@ -73,7 +73,7 @@ export default function AccountsPage({ searchParams }) {
       setUsers(updatedUsers);
       setEditingRow(null);
       showToast("Success", "List akun berhasil disimpan.");
-      
+
       // Log admin activity
       try {
         const { logActivity } = await import('../../../backend/dashboard');
@@ -98,7 +98,7 @@ export default function AccountsPage({ searchParams }) {
           setLoading(false);
         }
       }
-    } catch (e) {}
+    } catch (e) { }
   }, []);
 
   const loadUsers = async ({ forceRefresh = false } = {}) => {
@@ -123,7 +123,7 @@ export default function AccountsPage({ searchParams }) {
         setUsers(dbUsers);
         try {
           localStorage.setItem("sipantau_allUsers", JSON.stringify(dbUsers));
-        } catch (e) {}
+        } catch (e) { }
       }
     } catch (e) {
       console.error("Gagal memuat pengguna:", e);
@@ -176,7 +176,7 @@ export default function AccountsPage({ searchParams }) {
       setShowAddModal(false);
       setNewAccount({ name: "", email: "", phone: "", address: "", role: "pemagang", institution: "", major: "", password: "" });
       showToast("Sukses", "Akun baru telah berhasil ditambahkan.");
-      
+
       // Log admin activity
       try {
         const { logActivity } = await import('../../../backend/dashboard');
@@ -194,7 +194,7 @@ export default function AccountsPage({ searchParams }) {
       clearUsersCache();
       if (activeAdminId) {
         await updateUserStatus(activeAdminId, userId, newStatus);
-        
+
         // Log admin activity
         try {
           const { logActivity } = await import('../../../backend/dashboard');
@@ -317,32 +317,49 @@ export default function AccountsPage({ searchParams }) {
     <div className="w-full h-full flex flex-col overflow-hidden relative">
       {/* Toast Notification Container */}
       <div className="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none">
-        {toasts.map(toast => (
-          <div
-            key={toast.id}
-            className="pointer-events-auto flex items-start gap-3 bg-[#f0fdf4] border-l-4 border-[#22c55e] rounded-xl shadow-lg p-4 min-w-[320px] transform transition-all animate-[slideIn_0.3s_ease-out_forwards]"
-          >
-            <div className="bg-[#22c55e] rounded-full w-5 h-5 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-              <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h4 className="text-sm font-extrabold text-slate-800">
-                {toast.title === "Sukses" ? "Success" : toast.title}
-              </h4>
-              <p className="text-xs font-semibold text-slate-500 mt-0.5">{toast.message}</p>
-            </div>
-            <button
-              onClick={() => removeToast(toast.id)}
-              className="text-[#22c55e] hover:text-[#16a34a] transition-colors p-0.5 cursor-pointer"
+        {toasts.map(toast => {
+          const isErrorOrWarning = toast.type === "error" || toast.type === "warning" || toast.title === "Warning" || toast.title === "Error";
+          return (
+            <div
+              key={toast.id}
+              className={`pointer-events-auto flex items-start gap-3 border-l-4 rounded-xl shadow-lg p-4 min-w-[320px] transform transition-all animate-[slideIn_0.3s_ease-out_forwards] ${
+                isErrorOrWarning
+                  ? "bg-[#fff1f2] border-rose-500"
+                  : "bg-[#f0fdf4] border-[#22c55e]"
+              }`}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        ))}
+              <div className={`rounded-full w-5 h-5 flex items-center justify-center shrink-0 mt-0.5 shadow-sm text-white ${
+                isErrorOrWarning ? "bg-rose-500" : "bg-[#22c55e]"
+              }`}>
+                {isErrorOrWarning ? (
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                ) : (
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-extrabold text-slate-800">
+                  {toast.title === "Sukses" ? "Success" : toast.title}
+                </h4>
+                <p className="text-xs font-semibold text-slate-500 mt-0.5">{toast.message}</p>
+              </div>
+              <button
+                onClick={() => removeToast(toast.id)}
+                className={`transition-colors p-0.5 cursor-pointer ${
+                  isErrorOrWarning ? "text-rose-500 hover:text-rose-700" : "text-[#22c55e] hover:text-[#16a34a]"
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          );
+        })}
       </div>
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -353,7 +370,7 @@ export default function AccountsPage({ searchParams }) {
       `}} />
 
       <div className="border-b border-slate-100 pb-3 shrink-0">
-        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Direktori Tim</h1>
+        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Direktori Akun</h1>
       </div>
 
       {/* Tabs */}
@@ -502,8 +519,8 @@ export default function AccountsPage({ searchParams }) {
                               alt={displayName}
                               className="w-7 h-7 rounded-full border border-slate-200 object-cover"
                             />
-                              <span className="text-xs font-bold text-slate-800 notranslate" translate="no">{displayName}</span>
-                            </div>
+                            <span className="text-xs font-bold text-slate-800 notranslate" translate="no">{displayName}</span>
+                          </div>
                         </td>
                         <td className="px-6 py-4 border-none">
                           <div className="relative group/role inline-block" onClick={(e) => e.stopPropagation()}>
@@ -978,9 +995,8 @@ export default function AccountsPage({ searchParams }) {
                       }}
                       className="sr-only"
                     />
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all duration-200 ${
-                      newAccount.role === "pemagang" ? "border-violet-600 bg-white" : "border-slate-300 group-hover:border-slate-400"
-                    }`}>
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all duration-200 ${newAccount.role === "pemagang" ? "border-violet-600 bg-white" : "border-slate-300 group-hover:border-slate-400"
+                      }`}>
                       {newAccount.role === "pemagang" && <div className="w-2 h-2 rounded-full bg-violet-600" />}
                     </div>
                     <span className="text-xs font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">Pemagang</span>
@@ -1002,9 +1018,8 @@ export default function AccountsPage({ searchParams }) {
                       }}
                       className="sr-only"
                     />
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all duration-200 ${
-                      newAccount.role === "mentor" ? "border-violet-600 bg-white" : "border-slate-300 group-hover:border-slate-400"
-                    }`}>
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all duration-200 ${newAccount.role === "mentor" ? "border-violet-600 bg-white" : "border-slate-300 group-hover:border-slate-400"
+                      }`}>
                       {newAccount.role === "mentor" && <div className="w-2 h-2 rounded-full bg-violet-600" />}
                     </div>
                     <span className="text-xs font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">Mentor</span>
@@ -1024,11 +1039,10 @@ export default function AccountsPage({ searchParams }) {
                     onChange={(e) => setNewAccount({ ...newAccount, institution: e.target.value })}
                     readOnly={newAccount.role === "mentor"}
                     placeholder={newAccount.role === "mentor" ? "BPS Kota Semarang" : "Masukkan nama universitas / instansi"}
-                    className={`w-full border rounded-xl px-4 py-2.5 text-xs font-medium outline-none transition-all duration-200 ${
-                      newAccount.role === "mentor"
+                    className={`w-full border rounded-xl px-4 py-2.5 text-xs font-medium outline-none transition-all duration-200 ${newAccount.role === "mentor"
                         ? "border-slate-200 bg-slate-100/70 text-slate-500 cursor-not-allowed"
                         : "border-slate-200 bg-slate-50/50 text-slate-800 placeholder-slate-400 focus:border-violet-500 focus:bg-white focus:ring-1 focus:ring-violet-500"
-                    }`}
+                      }`}
                   />
                 </div>
 

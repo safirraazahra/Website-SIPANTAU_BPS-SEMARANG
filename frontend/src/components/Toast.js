@@ -7,7 +7,8 @@ export default function ToastContainer({ toasts, removeToast }) {
   return (
     <div className="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none">
       {toasts.map((toast) => {
-        const isWarning = toast.type === "warning";
+        const isError = toast.type === "error" || toast.title === "Error";
+        const isWarning = toast.type === "warning" || toast.title === "Warning" || isError;
         const isInfo = toast.type === "info";
         const isSuccess = toast.type === "success" || (!isWarning && !isInfo);
 
@@ -16,7 +17,7 @@ export default function ToastContainer({ toasts, removeToast }) {
             key={toast.id}
             className={`pointer-events-auto flex items-start gap-3 rounded-xl shadow-lg p-4 min-w-[320px] max-w-[380px] border-l-4 transform transition-all animate-[slideIn_0.3s_ease-out_forwards] ${
               isWarning
-                ? "bg-[#fffbeb] border-[#f97316]"
+                ? "bg-[#fff1f2] border-rose-500"
                 : isInfo
                 ? "bg-[#eff6ff] border-[#3b82f6]"
                 : "bg-[#f0fdf4] border-[#22c55e]"
@@ -26,7 +27,7 @@ export default function ToastContainer({ toasts, removeToast }) {
             <div
               className={`rounded-full w-5 h-5 flex items-center justify-center shrink-0 mt-0.5 shadow-sm text-white text-xs font-extrabold ${
                 isWarning
-                  ? "bg-[#f97316]"
+                  ? "bg-rose-500"
                   : isInfo
                   ? "bg-[#3b82f6]"
                   : "bg-[#22c55e]"
@@ -60,7 +61,7 @@ export default function ToastContainer({ toasts, removeToast }) {
               onClick={() => removeToast(toast.id)}
               className={`transition-colors p-0.5 cursor-pointer font-bold shrink-0 ${
                 isWarning
-                  ? "text-[#f97316] hover:text-[#ea580c]"
+                  ? "text-rose-500 hover:text-rose-700"
                   : isInfo
                   ? "text-[#3b82f6] hover:text-[#1d4ed8]"
                   : "text-[#22c55e] hover:text-[#15803d]"

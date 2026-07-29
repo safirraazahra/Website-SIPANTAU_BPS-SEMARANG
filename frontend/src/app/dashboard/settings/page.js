@@ -121,20 +121,38 @@ export default function SettingsPage() {
     <div className="relative space-y-6 pb-12">
       {/* Toast Alert */}
       {toast && (
-        <div className="fixed top-6 right-6 z-[99999999] pointer-events-auto flex items-start gap-3 bg-[#f0fdf4] border-l-4 border-emerald-500 text-emerald-950 rounded-2xl shadow-xl p-4 min-w-[300px] max-w-sm transform transition-all animate-[slideIn_0.3s_ease-out_forwards]">
-          <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 shadow-sm">
-            ✓
+        <div className={`fixed top-6 right-6 z-[99999999] pointer-events-auto flex items-start gap-3 rounded-2xl shadow-xl p-4 min-w-[300px] max-w-sm transform transition-all animate-[slideIn_0.3s_ease-out_forwards] border-l-4 ${
+          toast.type === "error" || toast.type === "warning"
+            ? "bg-[#fff1f2] border-rose-500 text-rose-950"
+            : "bg-[#f0fdf4] border-emerald-500 text-emerald-950"
+        }`}>
+          <div className={`w-5 h-5 rounded-full text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 shadow-sm ${
+            toast.type === "error" || toast.type === "warning"
+              ? "bg-rose-500"
+              : "bg-emerald-500"
+          }`}>
+            {toast.type === "error" || toast.type === "warning" ? (
+              <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            ) : (
+              "✓"
+            )}
           </div>
           <div className="flex-1 pr-1">
             <h4 className="text-xs font-bold text-slate-800">
-              {toast.type === "success" ? "Success" : "Warning"}
+              {toast.title || (toast.type === "error" || toast.type === "warning" ? "Warning" : "Success")}
             </h4>
             <p className="text-[11px] font-semibold text-slate-600 mt-0.5">{toast.message}</p>
           </div>
           <button
             type="button"
             onClick={() => setToast(null)}
-            className="p-0.5 cursor-pointer font-bold text-xs text-emerald-500 hover:text-emerald-700"
+            className={`p-0.5 cursor-pointer font-bold text-xs ${
+              toast.type === "error" || toast.type === "warning"
+                ? "text-rose-500 hover:text-rose-700"
+                : "text-emerald-500 hover:text-emerald-700"
+            }`}
           >
             ✕
           </button>
