@@ -156,7 +156,8 @@ export default function AuthForm({ defaultRole = "pemagang", onForgotPasswordCha
         localStorage.setItem("sipantau_reset_email", forgotEmail);
       }
 
-      const origin = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
+      const vercelUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null;
+      const origin = process.env.NEXT_PUBLIC_APP_URL || vercelUrl || (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
 
       // Try triggering Supabase resetPasswordForEmail
       try {

@@ -21,7 +21,8 @@ export async function POST(request) {
     let subject = '';
     let htmlContent = '';
 
-    const origin = process.env.NEXT_PUBLIC_APP_URL || request.headers.get('origin') || 'http://localhost:3000';
+    const vercelUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null;
+    const origin = process.env.NEXT_PUBLIC_APP_URL || vercelUrl || request.headers.get('origin') || 'http://localhost:3000';
 
     if (type === 'reset_password') {
       subject = 'Reset Password Akun SIPANTAU Anda';
