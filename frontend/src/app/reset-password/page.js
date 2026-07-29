@@ -13,17 +13,14 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
-  const [resetToken, setResetToken] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // 1. Listen for Supabase recovery session from URL token/hash
+    // 1. Listen for Supabase recovery session (backup, not required)
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" || session) {
-        if (session?.user?.email) {
-          setResetEmail(session.user.email);
-        }
+      if (event === "PASSWORD_RECOVERY" && session?.user?.email) {
+        setResetEmail(session.user.email);
         setIsLoading(false);
       }
     });
@@ -32,36 +29,28 @@ export default function ResetPasswordPage() {
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       const urlEmail = urlParams.get("email");
-      const urlToken = urlParams.get("token") || urlParams.get("code") || urlParams.get("token_hash");
       const storedEmail = localStorage.getItem("sipantau_reset_email");
       const email = urlEmail || storedEmail;
-
-      if (urlToken) {
-        setResetToken(urlToken);
-      }
 
       if (email) {
         setResetEmail(email);
         setIsLoading(false);
       } else {
-        const timer = setTimeout(() => {
-          supabase.auth.getSession().then(({ data }) => {
-            if (!data?.session) {
-              router.replace("/");
-            } else {
-              if (data.session.user?.email) setResetEmail(data.session.user.email);
-              setIsLoading(false);
-            }
-          });
-        }, 500);
-        return () => clearTimeout(timer);
+        // Coba ambil dari session sebagai fallback, tapi jangan redirect ke /
+        supabase.auth.getSession().then(({ data }) => {
+          if (data?.session?.user?.email) {
+            setResetEmail(data.session.user.email);
+          }
+          setIsLoading(false);
+        });
       }
     }
 
     return () => {
       authListener?.subscription?.unsubscribe();
     };
-  }, [router]);
+  }, []);
+  // NOTE: jangan tambahkan `router` ke dependency array biar gak redirect otomatis!
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -85,68 +74,24 @@ export default function ResetPasswordPage() {
     setIsSubmitting(true);
 
     try {
-      let updatedInSupabase = false;
-
-      // 0. If resetToken is present, attempt verifyOtp to authenticate recovery session
-      if (resetToken && resetEmail) {
-        try {
-          const { data: otpData, error: otpErr } = await supabase.auth.verifyOtp({
-            email: resetEmail,
-            token: resetToken,
-            type: "recovery",
-          });
-          if (!otpErr && otpData?.session) {
-            console.log("Recovery token verified successfully");
-          }
-        } catch (vErr) {
-          console.warn("verifyOtp notice:", vErr);
-        }
-      }
-
-      // 1. Try Supabase Auth updateUser if active session/recovery token exists
-      const { data: updateData, error: supabaseUpdateErr } = await supabase.auth.updateUser({
-        password: password,
+      // Coba update via API route dulu (pake SERVICE_ROLE_KEY — paling reliable)
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: resetEmail,
+          password: password,
+        }),
       });
 
-      if (!supabaseUpdateErr && updateData?.user) {
-        updatedInSupabase = true;
+      const apiData = await res.json();
+
+      if (!res.ok || !apiData?.success) {
+        throw new Error(apiData?.error || "Gagal memperbarui password.");
       }
 
-      // 2. Call backend API route /api/auth/reset-password if client updateUser didn't run with session
-      if (!updatedInSupabase) {
-        const res = await fetch("/api/auth/reset-password", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: resetEmail,
-            password: password,
-          }),
-        });
-
-        const apiData = await res.json();
-
-        if (res.ok && apiData?.success) {
-          updatedInSupabase = true;
-        } else {
-          throw new Error(
-            apiData?.error || "Gagal memperbarui password di Supabase. Sesi pemulihan tidak ditemukan."
-          );
-        }
-      }
-
-      // 3. Also update localStorage if present
-      if (resetEmail) {
-        const usersListStr = localStorage.getItem("sipantau_users") || "[]";
-        let usersList = JSON.parse(usersListStr);
-        const userIndex = usersList.findIndex(
-          (u) => u.email?.toLowerCase() === resetEmail.toLowerCase()
-        );
-        if (userIndex !== -1) {
-          usersList[userIndex].password = password;
-          localStorage.setItem("sipantau_users", JSON.stringify(usersList));
-        }
-        localStorage.removeItem("sipantau_reset_email");
-      }
+      // Bersihin localStorage
+      localStorage.removeItem("sipantau_reset_email");
 
       setSuccess(true);
       setTimeout(() => {

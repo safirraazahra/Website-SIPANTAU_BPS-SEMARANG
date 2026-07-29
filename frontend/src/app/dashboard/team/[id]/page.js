@@ -378,13 +378,15 @@ export default function TeamDetailPage({ params }) {
 
   const isMentorOrAdmin = isMentor || isAdmin;
 
-  // Available members berasal dari database (semua user terdaftar)
-  const availableMembers = allUsers.map(u => ({
-    id: u.id,
-    name: u.full_name || u.email || "User",
-    initial: (u.full_name || "?").charAt(0).toUpperCase(),
-    avatar_url: u.avatar_url || null
-  }));
+  // Available members berasal dari database (hanya user active/verified, bukan admin, bukan current user)
+  const availableMembers = allUsers
+    .filter(u => u.status === "active" && u.role !== "admin" && u.id !== currentUser?.id)
+    .map(u => ({
+      id: u.id,
+      name: u.full_name || u.email || "User",
+      initial: (u.full_name || "?").charAt(0).toUpperCase(),
+      avatar_url: u.avatar_url || null
+    }));
 
   const tabs = [
     {

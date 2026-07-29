@@ -63,10 +63,10 @@ export default function TeamPage() {
       setIsAdmin(profile.role === "admin");
       setAllUsers(allSysUsers);
       
-      const mentors = allSysUsers.filter(u => u.role === "mentor");
+      const mentors = allSysUsers.filter(u => u.role === "mentor" && u.status === "active");
       setAllMentors(mentors);
       
-      const members = allSysUsers.filter(u => u.role === "pemagang" || u.role === "intern");
+      const members = allSysUsers.filter(u => (u.role === "pemagang" || u.role === "intern") && u.status === "active");
       setAvailableMembers(members);
 
       // Filter active and deleted groups
@@ -126,7 +126,7 @@ export default function TeamPage() {
         if (Array.isArray(parsed) && parsed.length > 0) {
           setAllUsers(parsed);
           setAllMentors(parsed.filter(u => u.role === "mentor"));
-          setAvailableMembers(parsed.filter(u => u.role === "pemagang" || u.role === "intern"));
+          setAvailableMembers(parsed.filter(u => (u.role === "pemagang" || u.role === "intern") && u.status === "active"));
         }
       }
       const deletedLS = localStorage.getItem("sipantau_deletedTeams");

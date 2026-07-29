@@ -159,28 +159,24 @@ export default function AuthForm({ defaultRole = "pemagang", onForgotPasswordCha
       const vercelUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null;
       const origin = process.env.NEXT_PUBLIC_APP_URL || vercelUrl || (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
 
-      // Try triggering Supabase resetPasswordForEmail
-      try {
-        await supabase.auth.resetPasswordForEmail(forgotEmail, {
-          redirectTo: `${origin}/reset-password?email=${encodeURIComponent(forgotEmail)}`,
-        });
-      } catch (sErr) {
-        console.warn("Supabase resetPasswordForEmail notice:", sErr);
-      }
-
-      const response = await fetch('/api/email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      // Kirim email reset password via Nodemailer (bawaan SIPANTAU)
+      // Tidak perlu recovery session dari Supabase karena password diupdate
+      // langsung via backend menggunakan SUPABASE_SERVICE_ROLE_KEY
+      const emailRes = await fetch("/api/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           to: forgotEmail,
-          type: 'reset_password'
-        })
+          type: "reset_password",
+          data: {
+            resetUrl: `${origin}/reset-password?email=${encodeURIComponent(forgotEmail)}`,
+          },
+        }),
       });
 
-      if (!response.ok) {
-        throw new Error("Gagal mengirim email. Pastikan server nyala dan konfigurasi SMTP benar.");
+      if (!emailRes.ok) {
+        const emailErr = await emailRes.json().catch(() => ({}));
+        throw new Error(emailErr.error || "Gagal mengirim email reset password. Pastikan konfigurasi SMTP benar.");
       }
 
       setForgotSuccess(true);

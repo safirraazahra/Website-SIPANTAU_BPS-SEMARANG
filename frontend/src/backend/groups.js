@@ -107,6 +107,24 @@ export async function createGroup(groupData, members) {
   if (error) throw error;
 
   if (members && members.length > 0) {
+    // Validasi: pastikan semua anggota sudah terverifikasi (status active) dan bukan admin
+    const { data: validUsers, error: checkError } = await supabase
+      .from("profiles")
+      .select("id, status, role, full_name")
+      .in("id", members);
+
+    if (checkError) throw checkError;
+
+    if ((validUsers || []).length !== members.length) {
+      throw new Error("Beberapa anggota tidak ditemukan atau telah dihapus.");
+    }
+
+    const invalidMembers = (validUsers || []).filter(u => u.status !== "active" || u.role === "admin");
+    if (invalidMembers.length > 0) {
+      const names = invalidMembers.map(u => u.full_name || u.id).join(", ");
+      throw new Error(`Anggota berikut tidak dapat ditambahkan ke kelompok: ${names}`);
+    }
+
     const memberInserts = members.map(userId => ({
       group_id: newGroup.id,
       user_id: userId
@@ -150,6 +168,21 @@ export async function deleteGroup(groupId, hardDelete = false) {
 
 // Add a member to a group
 export async function addGroupMember(groupId, userId) {
+  // Validasi: pastikan user sudah terverifikasi (status active) dan bukan admin
+  const { data: userProfile, error: profileError } = await supabase
+    .from("profiles")
+    .select("status, role, full_name")
+    .eq("id", userId)
+    .single();
+
+  if (profileError) throw profileError;
+  if (!userProfile || userProfile.status !== "active") {
+    throw new Error("Anggota ini belum disetujui admin dan tidak dapat ditambahkan ke kelompok.");
+  }
+  if (userProfile.role === "admin") {
+    throw new Error("Admin tidak dapat ditambahkan sebagai anggota kelompok.");
+  }
+
   const { data, error } = await supabase
     .from('group_members')
     .insert([{ group_id: groupId, user_id: userId }]);
