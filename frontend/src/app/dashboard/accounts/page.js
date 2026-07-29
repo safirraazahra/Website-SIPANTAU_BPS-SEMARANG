@@ -102,20 +102,29 @@ export default function AccountsPage({ searchParams }) {
   }, []);
 
   const loadUsers = async ({ forceRefresh = false } = {}) => {
-    setLoading(true);
-    try {
-      // Run auth and users fetch in parallel
-      const [activeUser, dbUsers] = await Promise.all([
-        getActiveUser(),
-        getAllUsers({ forceRefresh }),
-      ]);
+    // Only set loading to true if we don't have any users yet
+    setUsers(prev => {
+      if (!prev || prev.length === 0) {
+        setLoading(true);
+      }
+      return prev;
+    });
 
-      if (activeUser) setActiveAdminId(activeUser.id);
-      setUsers(dbUsers);
-      // Save to localStorage for instant display on hard refresh
-      try {
-        localStorage.setItem("sipantau_allUsers", JSON.stringify(dbUsers));
-      } catch (e) {}
+    try {
+      // Get active admin ID asynchronously without blocking data fetch
+      getActiveUser()
+        .then((activeUser) => {
+          if (activeUser) setActiveAdminId(activeUser.id);
+        })
+        .catch((err) => console.warn("Notice getting active user:", err));
+
+      const dbUsers = await getAllUsers({ forceRefresh });
+      if (Array.isArray(dbUsers)) {
+        setUsers(dbUsers);
+        try {
+          localStorage.setItem("sipantau_allUsers", JSON.stringify(dbUsers));
+        } catch (e) {}
+      }
     } catch (e) {
       console.error("Gagal memuat pengguna:", e);
     } finally {
