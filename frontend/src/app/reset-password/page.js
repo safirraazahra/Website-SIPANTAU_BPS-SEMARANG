@@ -17,7 +17,17 @@ export default function ResetPasswordPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // Check if there is an email to reset from URL parameter or localStorage
+    // 1. Listen for Supabase recovery session from URL token/hash
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || session) {
+        if (session?.user?.email) {
+          setResetEmail(session.user.email);
+        }
+        setIsLoading(false);
+      }
+    });
+
+    // 2. Check URL parameters and localStorage
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       const urlEmail = urlParams.get("email");
@@ -28,10 +38,23 @@ export default function ResetPasswordPage() {
         setResetEmail(email);
         setIsLoading(false);
       } else {
-        // If no email is set in URL or session, smoothly redirect to login without flashing UI
-        router.replace("/");
+        const timer = setTimeout(() => {
+          supabase.auth.getSession().then(({ data }) => {
+            if (!data?.session) {
+              router.replace("/");
+            } else {
+              if (data.session.user?.email) setResetEmail(data.session.user.email);
+              setIsLoading(false);
+            }
+          });
+        }, 500);
+        return () => clearTimeout(timer);
       }
     }
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
   }, [router]);
 
   const handleSubmit = async (e) => {
@@ -56,26 +79,37 @@ export default function ResetPasswordPage() {
     setIsSubmitting(true);
 
     try {
-      // 1. Try Supabase Auth updateUser if active session/recovery token exists
-      try {
-        await supabase.auth.updateUser({ password: password });
-      } catch (sErr) {
-        console.warn("Supabase auth.updateUser notice:", sErr);
-      }
+      let updatedInSupabase = false;
 
-      // 2. Call backend API route /api/auth/reset-password
-      const res = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: resetEmail,
-          password: password,
-        }),
+      // 1. Try Supabase Auth updateUser if active session/recovery token exists
+      const { data: updateData, error: supabaseUpdateErr } = await supabase.auth.updateUser({
+        password: password,
       });
 
-      const apiData = await res.json();
-      if (!res.ok && apiData?.error && !apiData?.error?.includes("SERVICE_ROLE_KEY")) {
-        throw new Error(apiData.error);
+      if (!supabaseUpdateErr && updateData?.user) {
+        updatedInSupabase = true;
+      }
+
+      // 2. Call backend API route /api/auth/reset-password if client updateUser didn't run with session
+      if (!updatedInSupabase) {
+        const res = await fetch("/api/auth/reset-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: resetEmail,
+            password: password,
+          }),
+        });
+
+        const apiData = await res.json();
+
+        if (res.ok && apiData?.success) {
+          updatedInSupabase = true;
+        } else {
+          throw new Error(
+            apiData?.error || "Gagal memperbarui password di Supabase. Sesi pemulihan tidak ditemukan."
+          );
+        }
       }
 
       // 3. Also update localStorage if present
@@ -97,7 +131,7 @@ export default function ResetPasswordPage() {
         router.push("/");
       }, 2500);
     } catch (err) {
-      setError(err.message || "Gagal memperbarui password.");
+      setError(err.message || "Gagal memperbarui password di Supabase.");
     } finally {
       setIsSubmitting(false);
     }

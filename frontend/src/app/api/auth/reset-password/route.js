@@ -44,11 +44,11 @@ export async function POST(request) {
 
       return NextResponse.json({ success: true, message: 'Password berhasil diperbarui di Supabase.' });
     } else {
-      // Without service role key, we notify client to rely on Supabase recovery session or client updateUser
+      // Without service role key, backend cannot update auth user password directly
       return NextResponse.json({ 
-        success: true, 
-        message: 'Password diperbarui di lokal. Tambahkan SUPABASE_SERVICE_ROLE_KEY di .env.local untuk memperbarui password auth secara langsung.' 
-      });
+        error: 'Sesi pemulihan Supabase tidak ditemukan. Buka tautan pemulihan dari email resmi Supabase atau atur SUPABASE_SERVICE_ROLE_KEY di .env.local.',
+        serviceRoleKeyMissing: true
+      }, { status: 400 });
     }
   } catch (error) {
     console.error('Error resetting password:', error);
