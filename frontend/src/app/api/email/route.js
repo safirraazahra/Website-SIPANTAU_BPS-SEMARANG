@@ -25,7 +25,9 @@ export async function POST(request) {
 
     if (type === 'reset_password') {
       subject = 'Reset Password Akun SIPANTAU Anda';
-      const resetUrl = `${origin}/reset-password?email=${encodeURIComponent(to)}`;
+      const token = data?.token || '';
+      const tokenQuery = token ? `&token=${encodeURIComponent(token)}` : '';
+      const resetUrl = `${origin}/reset-password?email=${encodeURIComponent(to)}${tokenQuery}`;
       
       htmlContent = `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
@@ -38,7 +40,13 @@ export async function POST(request) {
               Halo, kami menerima permintaan untuk mengatur ulang password akun SIPANTAU Anda.
               Silakan klik tombol di bawah ini untuk melanjutkan proses reset password.
             </p>
-            <div style="text-align: center; margin: 32px 0;">
+            ${token ? `
+            <div style="background-color: #f3e8ff; border: 1px solid #d8b4fe; border-radius: 8px; padding: 12px; text-align: center; margin: 16px 0;">
+              <span style="color: #6b21a8; font-size: 13px; font-weight: bold;">Kode Token Pemulihan Anda: </span>
+              <strong style="color: #7c3aed; font-size: 18px; letter-spacing: 2px;">${token}</strong>
+            </div>
+            ` : ''}
+            <div style="text-align: center; margin: 24px 0;">
               <a href="${resetUrl}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
                 Reset Password Sekarang
               </a>

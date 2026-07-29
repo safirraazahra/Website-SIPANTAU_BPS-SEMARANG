@@ -13,6 +13,7 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
+  const [resetToken, setResetToken] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -31,8 +32,13 @@ export default function ResetPasswordPage() {
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       const urlEmail = urlParams.get("email");
+      const urlToken = urlParams.get("token") || urlParams.get("code") || urlParams.get("token_hash");
       const storedEmail = localStorage.getItem("sipantau_reset_email");
       const email = urlEmail || storedEmail;
+
+      if (urlToken) {
+        setResetToken(urlToken);
+      }
 
       if (email) {
         setResetEmail(email);
@@ -80,6 +86,22 @@ export default function ResetPasswordPage() {
 
     try {
       let updatedInSupabase = false;
+
+      // 0. If resetToken is present, attempt verifyOtp to authenticate recovery session
+      if (resetToken && resetEmail) {
+        try {
+          const { data: otpData, error: otpErr } = await supabase.auth.verifyOtp({
+            email: resetEmail,
+            token: resetToken,
+            type: "recovery",
+          });
+          if (!otpErr && otpData?.session) {
+            console.log("Recovery token verified successfully");
+          }
+        } catch (vErr) {
+          console.warn("verifyOtp notice:", vErr);
+        }
+      }
 
       // 1. Try Supabase Auth updateUser if active session/recovery token exists
       const { data: updateData, error: supabaseUpdateErr } = await supabase.auth.updateUser({
